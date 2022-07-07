@@ -1,0 +1,23 @@
+version: "3.5"
+
+services:
+  mfe-learning:
+    container_name: "{{ project.name}}_mfe_learning"
+    image: {{ mfe_learning_docker_image }}
+    networks:
+      derex:
+        aliases:
+          - learning.{{ project.name}}.localhost
+          {% for alias in mfe_learning_aliases %}
+          - {{ alias }}
+          {% endfor %}
+
+  lms:
+    environment:
+      DEREX_LEARNING_MICROFRONTEND_URL: http://learning.{{ project.name}}.localhost
+      DEREX_LEARNING_MICROFRONTEND_ALIASES: "{{ mfe_learning_aliases | tojson }}"
+
+  cms:
+    environment:
+      DEREX_LEARNING_MICROFRONTEND_URL: http://learning.{{ project.name}}.localhost
+      DEREX_LEARNING_MICROFRONTEND_ALIASES: "{{ mfe_learning_aliases | tojson }}"

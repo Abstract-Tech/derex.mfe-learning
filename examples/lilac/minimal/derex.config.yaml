@@ -1,0 +1,9 @@
+project_name: mfe-learning-minimal
+openedx_version: lilac
+materialize_derex_settings: true
+plugins:
+  derex.mfe-learning:
+    {
+      "build_dir": "mfe_learning_build",
+      "dockerfile_path": "mfe_learning_build/Dockerfile",
+    }
