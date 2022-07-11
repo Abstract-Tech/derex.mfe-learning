@@ -18,7 +18,10 @@ def generate_local_docker_compose(project: Project) -> Path:
     template_path = Path(
         pkg_resources.resource_filename(__name__, "docker-compose-mfe-learning.yml.j2")
     )
-    config = project.config.get("plugins").get("mfe-learning") or {}
+    try:
+        config = project.config.get("plugins").get("mfe-learning") or {}
+    except AttributeError:
+        config = {}
 
     default_docker_image_prefix = MfeLearningVersions[
         project.openedx_version.name

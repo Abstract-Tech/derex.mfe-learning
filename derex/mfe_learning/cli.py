@@ -61,7 +61,11 @@ def mfe_learning_build(
     cache_to: bool,
 ):
     """Build microfrontend image using docker. Defaults to final image target."""
-    config = project.config.get("plugins").get("derex.mfe-learning") or {}
+    try:
+        config = project.config.get("plugins").get("derex.mfe-learning") or {}
+    except AttributeError:
+        config = {}
+
     default_config = MfeLearningVersions[project.openedx_version.name]
 
     default_docker_image_prefix = default_config.value["docker_image_prefix"]
@@ -71,7 +75,7 @@ def mfe_learning_build(
         return 0
 
     default_build_dir = abspath_from_egg(
-        "derex.mfe_learning", "docker_build/Dockerfile"
+        "derex.mfe_learning", "derex/mfe_learning/docker_build/Dockerfile"
     ).parent
     build_dir = Path(config.get("build_dir") or default_build_dir)
     dockerfile_path = Path(
