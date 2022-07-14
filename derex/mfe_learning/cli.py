@@ -15,6 +15,12 @@ from derex.mfe_learning.constants import MfeLearningVersions
 @derex_build_cli.command("mfe-learning")
 @click.pass_obj
 @ensure_project
+@click.argument(
+    "version",
+    type=click.Choice(MfeLearningVersions.__members__),
+    required=False,
+    callback=lambda _, __, value: value and MfeLearningVersions[value],
+)
 @click.option(
     "-T",
     "--target",
@@ -49,6 +55,7 @@ from derex.mfe_learning.constants import MfeLearningVersions
 @click.option("--cache-to", is_flag=True, default=False)
 def mfe_learning_build(
     project: Project,
+    version: Optional[str],
     target: str,
     output: str,
     registry: Optional[str],
@@ -66,7 +73,10 @@ def mfe_learning_build(
     except AttributeError:
         config = {}
 
-    default_config = MfeLearningVersions[project.openedx_version.name]
+    if not version:
+        version = project.openedx_version.name
+
+    default_config = MfeLearningVersions[version]
 
     default_docker_image_prefix = default_config.value["docker_image_prefix"]
     tag = config.get("docker_image_tag", f"{default_docker_image_prefix}:{__version__}")
