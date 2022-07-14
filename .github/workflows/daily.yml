@@ -1,0 +1,132 @@
+name: "Daily test"
+on:
+  schedule:
+    - cron: "20 05 * * *"
+
+env:
+  CACHE_VERSION: 1
+  PYTHON_VERSION: 3.8
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        OPENEDX_VERSION: ["lilac"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup pip cache
+        uses: actions/cache@v2
+        with:
+          path: "${{ github.workspace }}/.cache/pip"
+          key: ${{ env.CACHE_VERSION }}-${{ env.PYTHON_VERSION }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ env.CACHE_VERSION }}-${{ env.PYTHON_VERSION }}-pip-
+
+      - name: Setup derex
+        uses: ./.github/actions/setup
+        with:
+          DEVELOPMENT_MODE: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Github Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        run: |
+          set -x
+          export DOCKER_BUILDKIT=1
+          cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
+          derex build mfe-learning ${{ matrix.OPENEDX_VERSION }} "$DOCKER_OPTS"
+
+      - name: Upload built docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: derex-mfe-learning-${{ matrix.OPENEDX_VERSION }}
+          path: /tmp/derex-mfe-learning-${{ matrix.OPENEDX_VERSION }}.tar
+          retention-days: 1
+
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        PYTHON_VERSION: [3.8, 3.9, 3.10]
+        OPENEDX_VERSION: ["lilac"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup pip cache
+        uses: actions/cache@v2
+        with:
+          path: "${{ github.workspace }}/.cache/pip"
+          key: ${{ env.CACHE_VERSION }}-${{ matrix.PYTHON_VERSION }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ env.CACHE_VERSION }}-${{ matrix.PYTHON_VERSION }}-pip-
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Download built docker image
+        uses: actions/download-artifact@v2
+        with:
+          name: derex-mfe-learning-${{ matrix.OPENEDX_VERSION }}
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/derex-mfe-learning-${{ matrix.OPENEDX_VERSION }}.tar
+          docker image ls -a
+
+      - name: Setup derex
+        uses: ./.github/actions/setup
+
+      - name: "Start services"
+        run: ddc-services up -d
+
+      - name: "Prime Mysql, Rabbitmq and Elasticsearch"
+        run: |
+          set -ex
+          cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
+          derex mysql reset --force
+          derex reset-rabbitmq
+
+      - name: "Start lms and learning MFE"
+        run: |
+          set -ex
+          cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
+          ddc-project config
+          derex settings base
+          derex build final
+          ddc-project up -d lms mfe-learning
+
+          # Give the containers some time to boot
+          sleep 10
+
+      - name: "Show logs"
+        run: |
+          set -ex
+          cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
+          ddc-project logs
+
+      - name: "Test that the learning MFE is working"
+        run: |
+          echo "TODO"
