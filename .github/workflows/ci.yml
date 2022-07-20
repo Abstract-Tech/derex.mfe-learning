@@ -61,7 +61,7 @@ jobs:
 
           export FILENAME=$(derex build mfe-learning --only-print-image-name | sed 's/ghcr.io\/.*\///' | sed 's/:.*//')
           derex build mfe-learning ${{ matrix.OPENEDX_VERSION }}
-          docker save derex build mfe-learning --only-print-image-name $FILENAME.tar
+          docker save $(derex build mfe-learning --only-print-image-name) $FILENAME.tar
 
       - name: Upload built docker image
         uses: actions/upload-artifact@v2
