@@ -74,9 +74,9 @@ def mfe_learning_build(
         config = {}
 
     if not version:
-        version = project.openedx_version.name
+        version = project.openedx_version
 
-    default_config = MfeLearningVersions[version]
+    default_config = MfeLearningVersions[version.name]
 
     default_docker_image_prefix = default_config.value["docker_image_prefix"]
     tag = config.get("docker_image_tag", f"{default_docker_image_prefix}:{__version__}")
