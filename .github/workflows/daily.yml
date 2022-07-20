@@ -49,14 +49,23 @@ jobs:
           set -x
           export DOCKER_BUILDKIT=1
           cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
-          derex build mfe-learning ${{ matrix.OPENEDX_VERSION }} "$DOCKER_OPTS"
+
+          export FILENAME=$(derex build mfe-learning --only-print-image-name | sed 's/ghcr.io\/.*\///' | sed 's/:.*//')
+          derex build mfe-learning ${{ matrix.OPENEDX_VERSION }}
+          docker save derex build mfe-learning --only-print-image-name $FILENAME.tar
+
+      - name: Build
+        run: |
+          set -x
+          export DOCKER_BUILDKIT=1
+          cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
+          derex build mfe-learning ${{ matrix.OPENEDX_VERSION }}
 
       - name: Upload built docker image
         uses: actions/upload-artifact@v2
         with:
-          name: derex-mfe-learning-${{ matrix.OPENEDX_VERSION }}
-          path: /tmp/derex-mfe-learning-${{ matrix.OPENEDX_VERSION }}.tar
-          retention-days: 1
+          name: $(derex build mfe-learning --only-print-image-name | sed 's/ghcr.io\/.*\///' | sed 's/:.*//')
+          path: $(derex build mfe-learning --only-print-image-name | sed 's/ghcr.io\/.*\///' | sed 's/:.*//').tar
 
   test:
     name: Test
