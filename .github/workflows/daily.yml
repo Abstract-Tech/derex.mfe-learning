@@ -49,23 +49,14 @@ jobs:
           set -x
           export DOCKER_BUILDKIT=1
           cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
-
-          export FILENAME=$(derex build mfe-learning --only-print-image-name | sed 's/ghcr.io\/.*\///' | sed 's/:.*//')
           derex build mfe-learning ${{ matrix.OPENEDX_VERSION }}
-          docker save $(derex build mfe-learning --only-print-image-name) $FILENAME.tar
-
-      - name: Build
-        run: |
-          set -x
-          export DOCKER_BUILDKIT=1
-          cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
-          derex build mfe-learning ${{ matrix.OPENEDX_VERSION }}
+          docker save $(derex build mfe-learning --only-print-image-name) -o mfe-docker-build.tar
 
       - name: Upload built docker image
         uses: actions/upload-artifact@v2
         with:
-          name: $(derex build mfe-learning --only-print-image-name | sed 's/ghcr.io\/.*\///' | sed 's/:.*//')
-          path: $(derex build mfe-learning --only-print-image-name | sed 's/ghcr.io\/.*\///' | sed 's/:.*//').tar
+          name: mfe-docker-build
+          path: examples/${{ matrix.OPENEDX_VERSION }}/minimal/mfe-docker-build.tar
 
   test:
     name: Test
@@ -97,12 +88,12 @@ jobs:
       - name: Download built docker image
         uses: actions/download-artifact@v2
         with:
-          name: derex-mfe-learning-${{ matrix.OPENEDX_VERSION }}
+          name: mfe-docker-build
           path: /tmp
 
       - name: Load image
         run: |
-          docker load --input /tmp/derex-mfe-learning-${{ matrix.OPENEDX_VERSION }}.tar
+          docker load --input /tmp/mfe-docker-build.tar
           docker image ls -a
 
       - name: Setup derex
@@ -123,7 +114,6 @@ jobs:
           set -ex
           cd examples/${{ matrix.OPENEDX_VERSION }}/minimal/
           ddc-project config
-          derex settings base
           derex build final
           ddc-project up -d lms mfe-learning
 
