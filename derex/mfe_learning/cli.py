@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 
 import click
@@ -6,10 +5,16 @@ from derex.runner.build import build_microfrontend_image
 from derex.runner.cli import ensure_project
 from derex.runner.cli.build import build as derex_build_cli
 from derex.runner.project import Project
-from derex.runner.utils import abspath_from_egg
 
 from derex.mfe_learning import __version__
-from derex.mfe_learning.constants import MfeLearningVersions
+from derex.mfe_learning.constants import (
+    DEFAULT_BUILD_DIR,
+    DEFAULT_CADDYFILE_PATH,
+    DEFAULT_DEV_ENV_FILE_TEMPLATE_PATH,
+    DEFAULT_DOCKERFILE_TEMPLATE_PATH,
+    DEFAULT_ENV_FILE_TEMPLATE_PATH,
+    MfeLearningVersions,
+)
 
 
 @derex_build_cli.command("mfe-learning")
@@ -24,8 +29,8 @@ from derex.mfe_learning.constants import MfeLearningVersions
 @click.option(
     "-T",
     "--target",
-    type=str,
-    default="final",
+    type=click.Choice(["sourceonly", "dev", "final"]),
+    required=False,
     help="Target to build",
 )
 @click.option(
@@ -75,6 +80,10 @@ def mfe_learning_build(
 
     if not version:
         version = project.openedx_version
+    if not target:
+        target = "final"
+        if project.runmode.name == "debug":
+            target = "dev"
 
     default_config = MfeLearningVersions[version.name]
 
@@ -84,24 +93,50 @@ def mfe_learning_build(
         click.echo(tag)
         return 0
 
-    default_build_dir = abspath_from_egg(
-        "derex.mfe_learning", "derex/mfe_learning/docker_build/Dockerfile"
-    ).parent
-    build_dir = Path(config.get("build_dir") or default_build_dir)
-    dockerfile_path = Path(
-        config.get("dockerfile_path") or default_build_dir / "Dockerfile"
-    )
+    build_dir = DEFAULT_BUILD_DIR
+    caddyfile_path = DEFAULT_CADDYFILE_PATH
+    dockerfile_template_path = DEFAULT_DOCKERFILE_TEMPLATE_PATH
+    env_file_template_path = DEFAULT_ENV_FILE_TEMPLATE_PATH
+    dev_env_file_template_path = DEFAULT_DEV_ENV_FILE_TEMPLATE_PATH
+
+    if config.get("build_dir"):
+        build_dir = project.root / config.get("build_dir")
 
     if not build_dir.exists() or not build_dir.is_dir():
         raise click.ClickException(
             f"Build dir {build_dir} does not exist or is not a directory. Aborting."
         )
-    if not dockerfile_path.exists() or not dockerfile_path.is_file():
-        raise click.ClickException(
-            f"Dockerfile {dockerfile_path} does not exist or is not a file. Aborting."
-        )
+
+    if build_dir != DEFAULT_BUILD_DIR:
+        if (build_dir / DEFAULT_CADDYFILE_PATH.name).exists() and (
+            build_dir / DEFAULT_CADDYFILE_PATH.name
+        ).is_file():
+            caddyfile_path = build_dir / DEFAULT_CADDYFILE_PATH.name
+        if (build_dir / DEFAULT_DOCKERFILE_TEMPLATE_PATH.name).exists() and (
+            build_dir / DEFAULT_DOCKERFILE_TEMPLATE_PATH.name
+        ).is_file():
+            dockerfile_template_path = build_dir / DEFAULT_DOCKERFILE_TEMPLATE_PATH.name
+        if (build_dir / DEFAULT_ENV_FILE_TEMPLATE_PATH.name).exists() and (
+            build_dir / DEFAULT_ENV_FILE_TEMPLATE_PATH.name
+        ).is_file():
+            env_file_template_path = build_dir / DEFAULT_ENV_FILE_TEMPLATE_PATH.name
+        if (build_dir / DEFAULT_DEV_ENV_FILE_TEMPLATE_PATH.name).exists() and (
+            build_dir / DEFAULT_DEV_ENV_FILE_TEMPLATE_PATH.name
+        ).is_file():
+            dev_env_file_template_path = (
+                build_dir / DEFAULT_DEV_ENV_FILE_TEMPLATE_PATH.name
+            )
 
     paths_to_copy = [path for path in build_dir.iterdir()]
+    for path in [
+        caddyfile_path,
+        dockerfile_template_path,
+        env_file_template_path,
+        dev_env_file_template_path,
+    ]:
+        if path not in paths_to_copy:
+            paths_to_copy.append(path)
+
     build_args = {
         "NODE_VERSION": config.get(
             "NODE_VERSION", default_config.value["NODE_VERSION"]
@@ -125,5 +160,5 @@ def mfe_learning_build(
         cache_from,
         cache_to,
         build_args=build_args,
-        dockerfile_path=dockerfile_path,
+        dockerfile_template_path=dockerfile_template_path,
     )

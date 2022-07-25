@@ -4,11 +4,19 @@ services:
   mfe-learning:
     container_name: "{{ project.name}}_mfe_learning"
     image: {{ mfe_learning_docker_image }}
+    {% if project.runmode.name == "debug" -%}
+    command: fedx-scripts webpack-dev-server --progress --disable-host-check
+    {% if mfe_learning_repository.is_dir() -%}
+    volumes:
+      - {{ mfe_learning_repository.absolute() }}:/openedx/microfrontend
+    {% endif -%}
+    {% endif -%}
     networks:
       derex:
         aliases:
           - learning.{{ project.name}}.localhost
-          {% for alias in mfe_learning_aliases %}
+          - learning.{{ project.name}}.localhost.derex
+          {% for alias in mfe_learning_aliases -%}
           - {{ alias }}
           {% endfor %}
 

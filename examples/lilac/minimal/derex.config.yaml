@@ -6,4 +6,8 @@ plugins:
     {
       "build_dir": "mfe_learning_build",
       "dockerfile_path": "mfe_learning_build/Dockerfile",
+      "dev_dockerfile_path": "mfe_learning_build/Dockerfile-dev",
+      "MFE_REPOSITORY": "frontend-app-learning",
+      "MFE_BRANCH": "open-release/lilac.master",
+      "NODE_VERSION": "16.13.1-alpine3.13",
     }

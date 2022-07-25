@@ -1,5 +1,23 @@
 from enum import Enum
 
+from derex.runner.utils import abspath_from_egg
+
+DEFAULT_BUILD_DIR = abspath_from_egg(
+    "derex.mfe_learning", "derex/mfe_learning/docker_build/Dockerfile.j2"
+).parent
+DEFAULT_CADDYFILE_PATH = abspath_from_egg(
+    "derex.mfe_learning", "derex/mfe_learning/docker_build/Caddyfile"
+)
+DEFAULT_DOCKERFILE_TEMPLATE_PATH = abspath_from_egg(
+    "derex.mfe_learning", "derex/mfe_learning/docker_build/Dockerfile.j2"
+)
+DEFAULT_ENV_FILE_TEMPLATE_PATH = abspath_from_egg(
+    "derex.mfe_learning", "derex/mfe_learning/docker_build/.env.derex.j2"
+)
+DEFAULT_DEV_ENV_FILE_TEMPLATE_PATH = abspath_from_egg(
+    "derex.mfe_learning", "derex/mfe_learning/docker_build/.env.development.derex.j2"
+)
+
 
 class MfeLearningVersions(Enum):
     # Values will be passed as uppercased named arguments to the docker build
