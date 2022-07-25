@@ -1,0 +1,4 @@
+[submodule "examples/lilac/minimal/mfe_learning_build/frontend-app-learning"]
+	path = examples/lilac/minimal/mfe_learning_build/frontend-app-learning
+	url = https://github.com/openedx/frontend-app-learning.git
+	branch = open-release/lilac.master

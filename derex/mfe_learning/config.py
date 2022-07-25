@@ -19,7 +19,7 @@ def generate_local_docker_compose(project: Project) -> Path:
         pkg_resources.resource_filename(__name__, "docker-compose-mfe-learning.yml.j2")
     )
     try:
-        config = project.config.get("plugins").get("mfe-learning") or {}
+        config = project.config.get("plugins").get("derex.mfe-learning") or {}
     except AttributeError:
         config = {}
 
@@ -30,11 +30,20 @@ def generate_local_docker_compose(project: Project) -> Path:
         "docker_image", f"{default_docker_image_prefix}:{__version__}"
     )
     mfe_learning_aliases = config.get("aliases") or []
+    mfe_learning_repository = config.get("MFE_REPOSITORY") or None
+    mfe_learning_build_dir = config.get("build_dir") or None
+
+    if mfe_learning_repository and mfe_learning_build_dir:
+        mfe_learning_repository = Path(mfe_learning_build_dir) / mfe_learning_repository
+        if not mfe_learning_repository.exists() or not mfe_learning_repository.is_dir():
+            mfe_learning_repository = None
+
     tmpl = Template(template_path.read_text())
     text = tmpl.render(
         project=project,
         mfe_learning_docker_image=mfe_learning_docker_image,
         mfe_learning_aliases=mfe_learning_aliases,
+        mfe_learning_repository=mfe_learning_repository,
     )
     local_compose_path.write_text(text)
     return local_compose_path

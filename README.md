@@ -18,11 +18,20 @@ Derex Plugin to integrate Open edX Learning Microfrontend
 
 There are some options that can be passed to the plugin configuration in your derex.config.yaml file.
 
-- build_dir: An optional build directory which should contain a customized .env.derex file and a Caddyfile which will be included in the build context
-- dockerfile_path: Path to a Dockerfile relative to the derex.config.yaml file location which will be used inplace of the default one
+- docker_image: Then tag which will be given to the built docker image
+- build_dir: An optional build directory which content will be included in the build context. Some files will you'll probably want to include here:
+
+  - `.env.derex.j2` and `.env.development.derex.j2` files
+  - a `Caddyfile`
+  - a `Dockerfile.j2` Jinja template which will compiled and used for the build
+  - the whole microfrontend repository. This is especially useful when doing local development
+  - any additinal file you might need in your build. `.j2` files will be compiled with the derex `Project` object in the context
+
+  If `.env.derex.j2`, `.env.development.derex.j2`, `Caddyfile` and `Dockerfile.j2` are not present default one will be used.
+
 - aliases: Additional network aliases for the docker container. This list will also be used to populate the `CORS_ORIGIN_WHITELIST` and `LOGIN_REDIRECT_WHITELIST` LMS settings
 - NODE_VERSION: The node version which will be given as a build argument
-- MFE_REPOSITORY: A repository URL which will be given as a build argument
+- MFE_REPOSITORY: A repository URL which will be given as a build argument or a path to a local repository in the `build_dir`
 - MFE_BRANCH: A Git branch which will be checked out after cloning the Microfrontend repository
 
 e.g.:
@@ -32,7 +41,7 @@ plugins:
   derex.mfe-learning:
     {
       "build_dir": "mfe_learning_build",
-      "dockerfile_path": "mfe_learning_build/Dockerfile",
+      "docker_image": "my-custom-image-name",
       "aliases": [
         "learning.mydomain.com",
       ]
